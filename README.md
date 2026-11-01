@@ -1,226 +1,94 @@
-# NASA Space Apps 2026 — MODIS & VIIRS Hotspot Harmonization
+# Punjab MODIS / VIIRS FIRMS Downloader
 
-> NASA Space Apps Challenge 2026 project: a web-based exploration tool for harmonizing and comparing NASA FIRMS active-fire hotspot detections from MODIS and VIIRS.
+A small, repeatable downloader for NASA FIRMS Standard Processing (SP) active-fire detections over the selected Punjab, India study area. MODIS and VIIRS S-NPP are downloaded and stored separately; the script does not merge the sensors.
 
-## Project Overview
+## Selected study periods
 
-This project explores historical active-fire hotspot detections from NASA FIRMS and provides a practical way to compare MODIS and VIIRS observations over the same area and time period.
+The four inclusive date windows selected for the initial sample are:
 
-The MVP is designed around a simple scientific rule: **a hotspot detection is an observation, not necessarily an individual fire**. MODIS and VIIRS detections are therefore kept separate and are never simply added together. Any anomaly-style view is descriptive of historical activity and must not be presented as a prediction or early-warning system.
+1. 2025-10-20 to 2025-10-31
+2. 2025-11-01 to 2025-11-10
+3. 2025-11-11 to 2025-11-20
+4. 2025-11-21 to 2025-11-30
 
-## MVP Goals
+These windows cover late October and November 2025, a useful initial sampling window for Punjab's post-monsoon rice-residue burning season. They are a proposed sampling design, not a guarantee of detections. The team should review the resulting counts and coverage before treating the sample as representative.
 
-The MVP should allow a user to:
+The script expects up to **8 CSV files**: 4 periods x 2 sensors. A period with zero detections is retained as a valid empty-result CSV and marked `WARNING` in `download_summary.csv`.
 
-1. Select a study region/area and date range.
-2. Explore aggregated active-fire detections on a map.
-3. Review daily, monthly, and yearly activity patterns.
-4. Compare MODIS and VIIRS detection counts and standardized metrics.
-5. Understand the data sources, methodology, limitations, and known data gaps.
-6. Continue demonstrating the core experience through an offline/local fallback if hosted services are unavailable.
+## Requirements
 
-### Out of Scope for the MVP
+- Python 3.10+
+- A NASA FIRMS MAP_KEY
+- Internet access
 
-- Real-time operational fire monitoring.
-- Fire prediction or early-warning claims.
-- Treating each hotspot as a unique fire.
-- Adding MODIS and VIIRS counts together as a single fire count.
-- Complex machine-learning forecasting when historical coverage does not support it.
-- Features that are not required for the core challenge demonstration.
+Install dependencies:
 
-## Workstreams
-
-The project is divided into four technical workstreams plus cross-cutting coordination/documentation:
-
-| Workstream | Primary responsibility | Main dependency |
-|---|---|---|
-| **Data** | NASA FIRMS access, raw-file preservation, cleaning rules, validation, summaries | Starts first |
-| **Backend** | ASP.NET Core API, SQL Server schema/importer, aggregation, endpoints | Data definitions + API contract |
-| **Frontend** | React/TypeScript UI, map, calendars, comparison views, methods page | API contract; can start with mocks |
-| **AI / Anomaly** | Historical coverage assessment and reproducible anomaly/percentile analysis | Validated historical data |
-
-## Recommended Execution Order
-
-```text
-PHASE 1 — FOUNDATION
-
-Coordination / Scope
-        │
-        ├───────────────┐
-        ▼               ▼
-      DATA          BACKEND
-        │               │
-        ▼               ▼
-   Data Quality     API Contract
-        │               │
-        └───────┬───────┘
-                ▼
-        Frontend Mock Integration
-
-PHASE 2 — PARALLEL BUILD
-
-DATA ───────────────► Backend Importer / Database ─────► API
-  │                                                        │
-  └──────────────► AI / Anomaly Analysis                   │
-                                                           ▼
-FRONTEND (mock data) ───────────────────────────────► Live Integration
-
-PHASE 3 — INTEGRATION
-
-API + validated data + anomaly decision
-                 │
-                 ▼
-       Map + Calendar + Comparison
-                 │
-                 ▼
-        Methods / Limitations
-
-PHASE 4 — RELEASE
-
-E2E QA → deployment → offline fallback → demo rehearsal → submission
+```bash
+python -m venv .venv
+# Windows PowerShell:
+.venv\Scripts\Activate.ps1
+# macOS/Linux:
+# source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-### Parallel-work rule
+## Configure the API key safely
 
-Frontend does **not** need to wait for the production database. It can build screens and interactions against stable mock JSON once the API contract is agreed.
+1. Obtain/rotate your own NASA FIRMS MAP_KEY if needed.
+2. Copy `.env.example` to a new file named `.env`.
+3. Replace the placeholder with your key:
 
-Data work should start as early as possible because the quality and historical coverage of the source data determine what can safely be shown by Backend and AI/Anomaly.
-
-AI/Anomaly work can prepare its environment and inspect coverage early, but final anomaly analysis must use validated metrics. If the historical series is insufficient, the team should fall back to descriptive historical percentiles or omit anomaly labels rather than inventing a predictive model.
-
-## Timeline
-
-| Target | Focus |
-|---|---|
-| **Oct 22–25, 2026** | Scope, study region, data inspection, API contract, anomaly feasibility |
-| **Oct 26–Nov 1** | Importer/database, frontend mock UI, data validation, anomaly baseline |
-| **Nov 2–8** | API integration, comparison views, methods page, testing, feature freeze |
-| **Nov 9–13** | Stabilization, deployment, fallback verification, rehearsal, integrated MVP |
-| **Nov 14–15** | Presentation and final submission |
-
-## Architecture
-
-```text
-NASA FIRMS files
-      │
-      ▼
-Data validation / cleaning
-      │
-      ▼
-SQL Server
-      │
-      ▼
-ASP.NET Core Web API
-      │
-      ├──────────────► Aggregations / comparison metrics
-      │
-      └──────────────► Optional anomaly / percentile results
-      │
-      ▼
-React + TypeScript frontend
-      │
-      ├── Map Explorer
-      ├── Activity Calendar
-      ├── MODIS vs VIIRS Comparison
-      └── Methods & Limitations
+```env
+FIRMS_MAP_KEY=put_your_key_here
 ```
 
-## Technology Stack
+**Never commit `.env`, paste the key into the Python file, or share it in screenshots.** The `.gitignore` excludes `.env`. If a key was previously exposed in a shared file or repository, revoke/regenerate it before using this project.
 
-### Backend
+## Run
 
-- ASP.NET Core Web API
-- C#
-- SQL Server
-- REST/JSON API
-- Automated API/data tests
+Download the configured Punjab periods:
 
-### Frontend
+```bash
+python firms_download.py
+```
 
-- React
-- TypeScript
-- Interactive map visualization
-- Responsive web UI
+Validate existing downloaded CSVs without making API requests:
 
-### Data
+```bash
+python firms_download.py --validate-only
+```
 
-- NASA FIRMS active-fire hotspot data
-- MODIS
-- VIIRS
-- Reproducible cleaning and aggregation pipeline
+Force re-download of the configured periods:
 
-### AI / Analysis
+```bash
+python firms_download.py --force
+```
 
-- Python may be used for exploratory/reproducible analysis.
-- Historical percentiles/baselines are preferred when they are scientifically supportable.
-- Any anomaly result must be clearly labeled as descriptive historical analysis, not prediction.
+## Output
 
-## Data & Scientific Rules
+```text
+Area_1/
+  MODIS/
+    ...MODIS_SP...csv
+  VIIRS_SNPP/
+    ...VIIRS_SNPP_SP...csv
+_raw_api_responses/
+  Area_1/
+    MODIS/
+    VIIRS_SNPP/
+download_summary.csv
+```
 
-The application must preserve the distinction between **sensor observations** and **fires**.
+The script checks the returned sensor/instrument, coordinates, date window, required fields, and exact duplicate rows. Original API response chunks are retained locally for audit. It also checks FIRMS data availability before downloading.
 
-- Count hotspot detections, not individual fires.
-- Keep MODIS and VIIRS counts separate.
-- Do not sum MODIS + VIIRS and call the result a fire count.
-- Document the selected study region and date range.
-- Preserve raw source files where possible for reproducibility.
-- Record rejected/invalid rows during import.
-- Validate database summaries with an independent recount.
-- Report important data gaps and limitations.
-- Use consistent definitions and aggregation rules across the comparison views.
+## Team handoff
 
-## Repository Work Management
+- **Backend/script owner:** maintain this downloader and make sure the same configuration is used by the team.
+- **Data owner:** run the script, inspect `download_summary.csv`, review zero/low-count periods, perform the agreed cleaning/standardization, and publish the final shared dataset and data dictionary.
+- **AI owner:** agree with the Data owner on the input schema and use the approved dataset; do not assume the two sensors are interchangeable.
 
-The repository's linked GitHub Project is the central execution board.
+Downloaded data and raw API responses are ignored by Git by default. Share the approved final dataset with the team using the storage location agreed by the team (for example, shared cloud storage or Git LFS if appropriate). Do not commit API credentials.
 
-All implementation work is documented as GitHub Issues and is intentionally **unassigned** at creation time. Issue titles use the workstream name so the backlog can be filtered into:
+## Important note
 
-- Backend
-- Frontend
-- Data
-- AI / Anomaly
-- Coordination / QA / Infrastructure
-
-Issue descriptions include dependencies and acceptance criteria so contributors can identify the correct starting point and parallelizable work without relying on tribal knowledge.
-
-### Dependency strategy
-
-- **Start first:** project scope, data access/study region, initial data inspection, backend/frontend foundations.
-- **Next:** data definitions + API contract.
-- **Parallel:** backend importer/database, frontend mock implementation, data validation, and anomaly feasibility work where dependencies permit.
-- **Integration:** API endpoints → live frontend → comparison → methods/limitations.
-- **Final:** end-to-end QA → deployment → offline fallback → presentation/submission.
-
-## Release Checkpoints
-
-### Feature freeze — Nov 6
-
-Only bug fixes and critical integration changes should be accepted after the feature freeze.
-
-### Code freeze — Nov 10
-
-No feature additions after code freeze. Only release-blocking fixes should be merged.
-
-### Deployment — Nov 11
-
-Validate the hosted frontend, API, database connectivity, and fallback path.
-
-### Integrated MVP — Nov 13
-
-The complete demonstrable flow should be working, with methodology and limitations clearly documented.
-
-## Project Management
-
-- **GitHub Project board:** [NASA Space Apps 2026 execution board](https://github.com/users/salmahmed6/projects/5/views/1)
-- **Implementation backlog:** [Repository Issues](https://github.com/salmahmed6/Harmonization-of-MODIS-and-VIIRS-Hot-Spots/issues)
-- **Board setup guide:** [PROJECT_BOARD.md](PROJECT_BOARD.md)
-
-The issue backlog documents objectives, deliverables, acceptance criteria, dependencies, and parallel-work rules. Configure the linked Project with the Workstream, Priority, Phase, Target date, and Blocked by fields described in `PROJECT_BOARD.md`. Recommended views are Execution Board, Workstream Backlog, Delivery Roadmap, Priority Triage, and Blocked Work. Keep issues unassigned until the team agrees on ownership.
-
-## Challenge Focus
-
-This project is being developed for the **NASA Space Apps Challenge 2026**. The application prioritizes scientific transparency, reproducibility, clear sensor comparison, and a reliable demo over unsupported predictive claims.
-
-## License
-
-License and NASA data attribution details will be added with the final release documentation according to the applicable source-data and challenge requirements.
+The four dates are a practical initial choice based on the project's Punjab study-area and seasonal focus. Before final analysis, confirm that the requested FIRMS SP products cover these dates and inspect the actual detection counts. The script performs the availability check at runtime and stops if a requested period is outside the product's published availability.

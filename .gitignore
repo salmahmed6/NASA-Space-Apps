@@ -1,0 +1,11 @@
+# Secrets and local environment
+.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Downloaded FIRMS data (share separately with the team)
+Area_1/
+_raw_api_responses/
+download_summary.csv
